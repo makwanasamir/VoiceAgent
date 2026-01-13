@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aeroméxico Voice Assistant</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: var(--card);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+        }
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            min-height: 1.2rem;
+        }
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            height: 60px;
+            align-items: flex-end;
+            margin-bottom: 1.5rem;
+        }
+        .bar {
+            width: 8px;
+            background: linear-gradient(to top, var(--primary), #a855f7);
+            border-radius: 4px;
+            transition: height 0.1s ease;
+            height: 10px;
+        }
+        .bar.active { animation: pulse 0.5s ease-in-out infinite alternate; }
+        @keyframes pulse {
+            from { height: 10px; opacity: 0.6; }
+            to { height: 50px; opacity: 1; }
+        }
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .transcript {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .transcript .user { color: #60a5fa; }
+        .transcript .agent { color: #34d399; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aeroméxico Assistant</h1>
+        <div id="status" class="status">Click below to start</div>
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <button id="startBtn">Start Conversation</button>
+        <div id="transcript" class="transcript"></div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const transcriptEl = document.getElementById('transcript');
+        const bars = document.querySelectorAll('.bar');
+
+        let peerConnection = null;
+        let dataChannel = null;
+        let audioElement = null;
+
+        startBtn.onclick = async () => {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+                dataChannel = null;
+                startBtn.textContent = 'Start Conversation';
+                statusEl.innerText = 'Session ended.';
+                bars.forEach(b => b.classList.remove('active'));
+                return;
+            }
+
+            startBtn.disabled = true;
+            statusEl.innerText = "Connecting...";
+
+            try {
+                const configRes = await fetch('/config');
+                const config = await configRes.json();
+
+                const tokenRes = await fetch('/session');
+                const tokenData = await tokenRes.json();
+                if (tokenData.error) throw new Error(tokenData.error);
+
+                peerConnection = new RTCPeerConnection();
+
+                peerConnection.ondatachannel = (event) => {
+                    event.channel.onmessage = handleMessage;
+                };
+
+                audioElement = document.createElement('audio');
+                audioElement.autoplay = true;
+                peerConnection.ontrack = (event) => {
+                    audioElement.srcObject = event.streams[0];
+                    bars.forEach(b => b.classList.add('active'));
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+                stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+                dataChannel = peerConnection.createDataChannel('oai-events');
+                dataChannel.onopen = () => {
+                    statusEl.innerText = "Connected!";
+                };
+                dataChannel.onmessage = handleMessage;
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                const sdpResponse = await fetch('https://' + config.hostname + '/openai/v1/realtime/calls', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + tokenData.token,
+                        'Content-Type': 'application/sdp'
+                    },
+                    body: offer.sdp
+                });
+
+                if (!sdpResponse.ok) throw new Error('Connection failed: ' + sdpResponse.status);
+
+                await peerConnection.setRemoteDescription({
+                    type: 'answer',
+                    sdp: await sdpResponse.text()
+                });
+
+                startBtn.textContent = 'End Conversation';
+                startBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Connection error:', error);
+                statusEl.innerText = 'Error: ' + error.message;
+                startBtn.disabled = false;
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+            }
+        };
+
+        function handleMessage(event) {
+            try {
+                const msg = JSON.parse(event.data);
+
+                switch (msg.type) {
+                    case 'session.created':
+                        if (dataChannel && dataChannel.readyState === 'open') {
+                            dataChannel.send(JSON.stringify({ type: "response.create" }));
+                            statusEl.innerText = "Agent is greeting you...";
+                        }
+                        break;
+
+                    case 'input_audio_buffer.speech_started':
+                        statusEl.innerText = "🎤 Listening...";
+                        break;
+
+                    case 'input_audio_buffer.speech_stopped':
+                        statusEl.innerText = "Processing...";
+                        break;
+
+                    case 'input_audio_buffer.committed':
+                        addToTranscript('user', '[User spoke]');
+                        break;
+
+                    case 'output_audio_buffer.started':
+                        statusEl.innerText = "🔊 Agent speaking...";
+                        break;
+
+                    case 'output_audio_buffer.stopped':
+                        statusEl.innerText = "Connected";
+                        break;
+
+                    case 'response.output_audio_transcript.done':
+                        if (msg.transcript) {
+                            addToTranscript('agent', msg.transcript);
+                        }
+                        break;
+
+                    case 'response.function_call_arguments.done':
+                        handleToolCall(msg);
+                        break;
+
+                    case 'error':
+                        console.error('Azure Error:', msg.error);
+                        break;
+                }
+            } catch (e) {
+                console.error('Message parse error:', e);
+            }
+        }
+
+        async function handleToolCall(msg) {
+            if (msg.name === 'search_knowledge_base') {
+                try {
+                    const args = JSON.parse(msg.arguments);
+                    const response = await fetch('/search_kb', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: args.query })
+                    });
+                    const data = await response.json();
+
+                    if (dataChannel && dataChannel.readyState === 'open') {
+                        dataChannel.send(JSON.stringify({
+                            type: 'conversation.item.create',
+                            item: {
+                                type: 'function_call_output',
+                                call_id: msg.call_id,
+                                output: data.result
+                            }
+                        }));
+                        dataChannel.send(JSON.stringify({ type: 'response.create' }));
+                    }
+                } catch (e) {
+                    console.error('Tool call error:', e);
+                }
+            }
+        }
+
+        async function addToTranscript(role, text) {
+            if (!text || !text.trim()) return;
+
+            const div = document.createElement('div');
+            div.className = role;
+            div.innerHTML = '<strong>' + (role === 'user' ? 'You' : 'Agent') + ':</strong> ' + text;
+            transcriptEl.appendChild(div);
+            transcriptEl.scrollTop = transcriptEl.scrollHeight;
+
+            try {
+                await fetch('/log_transcript', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: role, text: text })
+                });
+            } catch (e) {
+                console.error('Log error:', e);
+            }
+        }
+    </script>
+</body>
+</html>

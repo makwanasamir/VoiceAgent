@@ -1,0 +1,29 @@
+# Voice Agent - Core Dependencies
+
+# Force CPU versions for light weight
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+
+# Web Framework
+fastapi>=0.100.0
+uvicorn>=0.20.0
+pydantic>=2.0.0
+
+# HTTP Client
+httpx>=0.24.0
+
+# Environment & Logging
+python-dotenv>=1.0.0
+loguru>=0.7.0
+
+# Knowledge Base (RAG)
+langchain-community>=0.2.0
+langchain-text-splitters>=0.2.0
+langchain-huggingface>=0.0.3
+faiss-cpu>=1.7.0
+sentence-transformers>=2.2.0
+
+# Testing (optional - install with: pip install -r requirements-dev.txt)
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# bandit>=1.7.0

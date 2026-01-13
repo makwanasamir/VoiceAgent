@@ -1,0 +1,11 @@
+# Voice Agent - Development Dependencies
+
+# Include all production dependencies
+-r requirements.txt
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Security Analysis
+bandit>=1.7.0
