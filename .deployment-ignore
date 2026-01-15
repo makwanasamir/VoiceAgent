@@ -1,0 +1,16 @@
+__pycache__/
+logs/
+tests/
+.env
+.env.example
+.gitignore
+README.md
+LICENSE
+requirements-dev.txt
+*.pyc
+*.pyo
+.git/
+.venv/
+venv/
+.vscode/
+*.log
