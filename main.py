@@ -73,7 +73,7 @@ class TranscriptLog(BaseModel):
 @app.get("/")
 async def get():
     """Serve the frontend."""
-    with open("index.html", "r") as f:
+    with open("index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
 @app.get("/config")
