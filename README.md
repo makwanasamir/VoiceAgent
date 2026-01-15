@@ -14,7 +14,6 @@ A real-time voice assistant powered by **Azure OpenAI GPT-Realtime API** with **
 - 🧠 **Local knowledge base** (FAISS + SentenceTransformers)
 - 🔇 **Barge-in support** - interrupt the AI mid-response
 - 🔐 **Ephemeral token auth** - API keys never exposed to browser
-- 📊 **Comprehensive test suite** (32 tests)
 
 ## 🏗️ Architecture
 
@@ -71,7 +70,7 @@ A real-time voice assistant powered by **Azure OpenAI GPT-Realtime API** with **
 1. Go to the resource overview → Click **"Go to Azure AI Foundry"**
 2. In the left sidebar, click **Deployments**
 3. Click **+ Deploy model** → **Deploy base model**
-4. Search for and select: **`gpt-realtime`** (or `gpt-realtime-mini`)
+4. Search for and select: **`gpt-realtime`**
 5. Configuration:
 
 | Setting | Value | Reason |
@@ -141,54 +140,98 @@ Click **Start Conversation** and start speaking!
 
 ---
 
-## 🧪 Testing
+## 🚀 Azure App Service Deployment Guide
+
+> **Note:** The `deploy.zip` file is already included in the repository. Follow the steps below to deploy your application to Azure App Service.
+
+### Prerequisites
+
+- Azure CLI installed on your machine
+- Azure subscription with an App Service already created in Azure Portal
+- Resource group name and App Service name from your Azure Portal configuration
+
+### Step 1: Check/Install Azure CLI
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Check if Azure CLI is installed
+az --version
 
-# Run with coverage
-pytest tests/ --cov=. --cov-report=html
+# If not installed, install it
+# Windows
+choco install azure-cli
 
-# Run security scan (SAST)
-bandit -r main.py knowledge_base.py
+# macOS
+brew install azure-cli
+
+# Linux
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 ```
 
-### Test Results
+### Step 2: Login to Azure
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Unit Tests | 8 | ✅ Pass |
-| Integration Tests | 8 | ✅ Pass |
-| Performance Tests | 4 | ✅ Pass |
-| Security/SAST | 8 | ✅ Pass |
-| Stress Tests | 4 | ✅ Pass |
+```bash
+# Login using device code (recommended)
+az login --use-device-code
+
+# Follow the instructions to authenticate
+```
+
+### Step 3: Set Environment Variables
+
+```bash
+# Set your resource group and app service name
+export RESOURCE_GROUP="your-resource-group-name"
+export APP_NAME="your-app-service-name"
+```
+
+### Step 4: Deploy the Application
+
+```bash
+# Deploy using the deploy.zip file
+az webapp deploy --resource-group $RESOURCE_GROUP --name $APP_NAME --src-path deploy.zip
+```
+
+### Step 5: Configure Startup Command
+
+```bash
+# Set the startup command for Python/Uvicorn
+az webapp config set --resource-group $RESOURCE_GROUP --name $APP_NAME --startup-file "python -m uvicorn main:app --host 0.0.0.0 --port 8000"
+```
+
+### Recreate deploy.zip (if you make code changes)
+
+If you modify the code and need to create a new `deploy.zip`:
+
+```bash
+# From the project root directory, run:
+zip -r deploy.zip . -x "*.git*" "*__pycache__*" "*.pyc" "*venv*" "*.env*" "*logs*" "*.vscode*" "*requirements-dev.txt" "README.md"
+
+# Then redeploy:
+az webapp deploy --resource-group $RESOURCE_GROUP --name $APP_NAME --src-path deploy.zip
+```
 
 ---
 
 ## 📁 Project Structure
 
 ```
-voice-agent/
-├── main.py              # FastAPI server (token dispenser + KB API)
-├── knowledge_base.py    # KB module (scans knowledge/ folder)
-├── knowledge/           # Drop your .txt/.md files here
-│   ├── README.md
-│   └── (your-files.txt)
-├── index.html           # WebRTC frontend
-├── .env                 # Azure credentials (not committed)
-├── .env.example         # Template for credentials
+VoiceAgent/
+├── main.py                  # FastAPI server (token dispenser + KB API)
+├── knowledge_base.py        # KB module (FAISS + SentenceTransformers)
+├── index.html               # WebRTC frontend
+├── deploy.zip               # Pre-packaged deployment file for Azure App Service
+├── .deployment              # Azure App Service deployment configuration
+├── .env                     # Azure credentials (not committed)
+├── .env.example             # Template for credentials
 ├── .gitignore
-├── requirements.txt     # Production dependencies
-├── requirements-dev.txt # Development dependencies
-└── tests/               # Coprehensive test suite (pytest)
-    ├── conftest.py          # Test configuration & fixtures
-    ├── test_unit.py         # Unit tests
-    ├── test_integration.py  # API integration tests
-    ├── test_performance.py  # Latency & throughput tests
-    ├── test_security.py     # SAST & security checks
-    ├── test_stress.py       # Load & stress tests
-    └── results/             # Test reports
+├── requirements.txt         # Production dependencies
+├── requirements-dev.txt     # Development dependencies
+├── knowledge/               # Drop your .txt/.md files here for RAG
+│   └── aeromexico_kb.md     # Sample knowledge base
+├── kb_index/                # FAISS vector index (auto-generated)
+│   ├── index.faiss
+│   └── metadata.json
+└── logs/                    # Application logs (rotated daily)
 ```
 
 ---
