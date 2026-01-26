@@ -59,8 +59,8 @@ A real-time voice assistant powered by **Azure OpenAI GPT-Realtime API** with **
 |-------|-------|
 | **Subscription** | Pay-As-You-Go (Free Trial often fails) |
 | **Resource Group** | Select existing or create new |
-| **Region** | 🇸🇪 **Sweden Central** (recommended) |
-| **Name** | e.g., `openai-realtime-sweden` |
+| **Region** |**Canada Central** (recommended) |
+| **Name** | e.g., `openai-realtime-Canada` |
 | **Pricing Tier** | Standard S0 |
 
 4. Click **Review + create** → **Create**
