@@ -39,7 +39,7 @@ A real-time voice assistant powered by **Azure OpenAI GPT-Realtime API** with **
 
 - Python 3.13+
 - Azure subscription (Pay-As-You-Go)
-- Azure OpenAI resource in **Sweden Central** or **East US 2**
+- Azure OpenAI resource in **Canada Central** or **East US 2**
 
 ---
 
@@ -94,8 +94,8 @@ Create a `.env` file in the project root:
 ```ini
 # Azure OpenAI Configuration
 
-# Endpoint of your Sweden Central resource
-AZURE_OPENAI_ENDPOINT= "https://openai-realtime-sweden.openai.azure.com/"
+# Endpoint of your canada Central resource
+AZURE_OPENAI_ENDPOINT= "https://openai-realtime-canada.openai.azure.com/"
 
 # API Key from "Keys and Endpoint"
 AZURE_OPENAI_API_KEY= "your_key_here_xxxxxxxxxxxxxxxxx"
@@ -264,7 +264,7 @@ Edit the `instructions` field in the session config:
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `401 Unauthorized` | Wrong region or API key | Verify Sweden Central + correct key |
+| `401 Unauthorized` | Wrong region or API key | Verify canada Central + correct key |
 | `404 Resource not found` | Wrong deployment name | Check `AZURE_OPENAI_DEPLOYMENT_NAME` |
 | `400 BadRequest` | Wrong API version | Use documented endpoint paths |
 | No audio response | Browser permissions | Allow microphone access |
