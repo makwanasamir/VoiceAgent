@@ -107,11 +107,17 @@ async def get_session_token():
                 "3. KNOWLEDGE: You know Aeroméxico policies (baggage, pets, fare families, lounges). "
                 "4. LIMITATIONS: You cannot book flights or check real-time schedules. Be upfront about this. "
                 "5. PATIENCE: Wait for user to finish speaking before responding."
+                #"You are a senior concierge voice agent for Taquería Orinoco."
+                #"1. LANGUAGE: Start in ENGLISH. If user speaks other languages, switch to them. "
+                #"2. STYLE: Be friendly, empathetic, concise (1-2 sentences). "
+                #"3. KNOWLEDGE: You know Taquería Orinoco menu, operating hours"
+                #"4. LIMITATIONS: You cannot order food online and cannot reserve tables, its first come first serve."
+                #"5. PATIENCE: Wait 2 seconds after caller finish speaking before responding"
             ),
             "audio": {
                 "output": {
-                    #"voice": "shimmer"
-                    "voice": "marin"
+                    "voice": "shimmer"
+                    #"voice": "marin"
                 }
             }
         }
