@@ -110,7 +110,7 @@ async def get_session_token():
             ),
             "audio": {
                 "output": {
-                    "voice": "marin"
+                    "voice": "shimmer"
                 }
             }
         }
